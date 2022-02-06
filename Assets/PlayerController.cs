@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour
 
     Transform squareTransform;
 
-    public float movementSpeed = 0.02f; 
+    public float movementSpeed = 0.02f;
 
     // Start is called before the first frame update
     void Start()
@@ -18,27 +18,33 @@ public class PlayerController : MonoBehaviour
 
         squareTransform = GetComponent<Transform>();
     }
-
-    // Update is called once per frame
-    void Update()
+    private void OnEnable()
     {
-        if (Input.GetKey("up"))
+        InputRecorder.Instance.OnActionRecorded += ProcessInput;
+    }
+    private void OnDisable()
+    {
+        InputRecorder.Instance.OnActionRecorded -= ProcessInput;
+    }
+    private void ProcessInput(InputData data)
+    {
+        if (data.UpPressed)
         {
-            squareTransform.position = new Vector2 (squareTransform.position.x, transform.position.y + movementSpeed);
+            squareTransform.position = new Vector2(squareTransform.position.x, transform.position.y + movementSpeed);
         }
-        if (Input.GetKey("down"))
+        if (data.DownPressed)
         {
             squareTransform.position = new Vector2(squareTransform.position.x, transform.position.y - movementSpeed);
         }
-        if (Input.GetKey("right"))
-        {
-            squareTransform.position = new Vector2(transform.position.x + movementSpeed, squareTransform.position.y);
-        }
-        if (Input.GetKey("left"))
+        if (data.LeftPressed)
         {
             squareTransform.position = new Vector2(transform.position.x - movementSpeed, squareTransform.position.y);
         }
-        if (Input.GetKeyDown("space"))
+        if (data.RightPressed)
+        {
+            squareTransform.position = new Vector2(transform.position.x + movementSpeed, squareTransform.position.y);
+        }
+        if (data.SpacePressed)
         {
             if (squareSpriteRenderer.color == Color.green)
             {
@@ -49,6 +55,10 @@ public class PlayerController : MonoBehaviour
                 squareSpriteRenderer.color = Color.green;
             }
         }
+    }
+    // Update is called once per frame
+    void Update()
+    {
         if (Input.GetKeyDown("return"))
         {
             // This command will be for testing rolling back
