@@ -18,33 +18,49 @@ public class PlayerController : MonoBehaviour
 
         squareTransform = GetComponent<Transform>();
     }
-    private void OnEnable()
+   
+    public void SubscribeToInputRecorder(bool unSubsribe = false)
     {
-        InputRecorder.Instance.OnActionRecorded += ProcessInput;
+
+        if (unSubsribe)
+        {
+            InputRecorder.Instance.OnInputRecorded -= ProcessInput;
+        }
+        else
+        {
+            InputRecorder.Instance.OnInputRecorded += ProcessInput;
+        }
     }
-    private void OnDisable()
-    {
-        InputRecorder.Instance.OnActionRecorded -= ProcessInput;
+    public void SubscribeToReplayRunner(ReplayRunner runner, bool unSubsribe = false){
+        if(unSubsribe){
+            runner.OnInputReceived -= ProcessInput;
+        }
+        else{
+            runner.OnInputReceived += ProcessInput; 
+        }
     }
-    private void ProcessInput(InputData data)
+
+    public void ProcessInput(InputFrame data)
     {
-        if (data.UpPressed)
+        if (data.EmptyInputFrame) return;
+
+        if (data.P1.UpPressed)
         {
             squareTransform.position = new Vector2(squareTransform.position.x, transform.position.y + movementSpeed);
         }
-        if (data.DownPressed)
+        if (data.P1.DownPressed)
         {
             squareTransform.position = new Vector2(squareTransform.position.x, transform.position.y - movementSpeed);
         }
-        if (data.LeftPressed)
+        if (data.P1.LeftPressed)
         {
             squareTransform.position = new Vector2(transform.position.x - movementSpeed, squareTransform.position.y);
         }
-        if (data.RightPressed)
+        if (data.P1.RightPressed)
         {
             squareTransform.position = new Vector2(transform.position.x + movementSpeed, squareTransform.position.y);
         }
-        if (data.SpacePressed)
+        if (data.P1.SpacePressed)
         {
             if (squareSpriteRenderer.color == Color.green)
             {

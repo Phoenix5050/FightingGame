@@ -4,23 +4,25 @@ using System.IO;
 using UnityEngine;
 using System;
 
-
+///<summary> 
+/// INputRecorder is the singleton that handles input 
+///</summary> 
 public class InputRecorder : MonoBehaviour
 {
-    public Action<InputData> OnActionRecorded;
+    public Action<InputFrame> OnInputRecorded;
     private int m_frameCounter = 0;
     private bool m_captureFrames = false;
     [SerializeField] private bool m_PrintLogs;
     public static InputRecorder Instance;
 
-    private string LogPath
+    private static string LogPath
     {
         get
         {
             return Application.persistentDataPath + Path.DirectorySeparatorChar + "InputLogs" + Path.DirectorySeparatorChar;
         }
     }
-    private string LogDictionaryPath
+    private static string LogDictionaryPath
     {
         get
         {
@@ -28,27 +30,28 @@ public class InputRecorder : MonoBehaviour
         }
     }
 
+
     private LogLookup m_logDictionary;
     private InputLog m_activeLog;
-    private int m_logCounter = 0;
 
     #region Monobehaviour LifeCycle
     private void Awake()
     {
         // The singleton pattern 
-        if (InputRecorder.Instance != null) Destroy(this);
-        else InputRecorder.Instance = this;
+        if (InputRecorder.Instance == null) InputRecorder.Instance = this;
+        else Destroy(this);
+        Debug.Log(InputRecorder.Instance);
 
         LoadLogDictionary();
     }
 
     private void OnEnable()
     {
-        this.OnActionRecorded += InputDataReceived;
+        this.OnInputRecorded += InputDataReceived;
     }
     private void OnDisable()
     {
-        this.OnActionRecorded -= InputDataReceived;
+        this.OnInputRecorded -= InputDataReceived;
     }
     private void OnDestroy()
     {
@@ -67,18 +70,20 @@ public class InputRecorder : MonoBehaviour
     }
     private void FixedUpdate()
     {
+        bool p1Up = Input.GetButton("Up");
+        bool p1Down = Input.GetButton("Down");
+        bool p1Right = Input.GetButton("Right");
+        bool p1Left = Input.GetButton("Left");
+        bool p1Space = Input.GetButton("Space");
 
-        InputData inputData = new InputData(
-            m_frameCounter,
-            Input.GetButtonDown("Up"),
-            Input.GetButtonDown("Down"),
-            Input.GetButtonDown("Left"),
-            Input.GetButtonDown("Right"),
-            Input.GetButtonDown("Space")
+        InputData p1 = new InputData(
+            p1Up, p1Down, p1Left, p1Right, p1Space
         );
 
+        InputFrame frame = new InputFrame(empty: !(p1Up || p1Down || p1Left || p1Right || p1Space),
+                                        m_frameCounter, p1);
 
-        OnActionRecorded?.Invoke(inputData);
+        OnInputRecorded?.Invoke(frame);
 
 
         m_frameCounter++;
@@ -91,18 +96,30 @@ public class InputRecorder : MonoBehaviour
     {
         m_captureFrames = true;
         m_frameCounter = 0;
-        m_activeLog = new InputLog(
-                        "Input_Log_" + (m_logCounter++).ToString(),
-                         UnityEngine.Random.Range(Int16.MinValue, Int16.MaxValue).ToString());
-        ConsoleLog("m_activeLog: " + m_activeLog.Name);
+        m_activeLog = new InputLog();
     }
     public void EndCapture()
     {
         m_captureFrames = false;
+        m_activeLog.FrameCount = m_frameCounter;
         m_frameCounter = 0;
         Debug.Log("m_activeLog name" + m_activeLog.Name);
         SaveNewLog(m_activeLog);
     }
+
+    public InputLog GetReplayLog(int logID)
+    {
+        var logName = MakeName(logID);
+        if (m_logDictionary.Contains(logName))
+        {
+            Debug.Log("Log Found");
+            return GetInputLog(GetLogPath(logName));
+
+        }
+        Debug.LogError("Log Not Found");
+        return null;
+    }
+
 
     #endregion
 
@@ -122,7 +139,6 @@ public class InputRecorder : MonoBehaviour
             ConsoleLog("File Exists loading log dictioanry");
             var content = File.ReadAllText(LogDictionaryPath);
             m_logDictionary = JsonUtility.FromJson<LogLookup>(content);
-            m_logDictionary.LoadDictionaryFromLists();
         }
         else
         {
@@ -132,13 +148,7 @@ public class InputRecorder : MonoBehaviour
     }
     private void SaveLogDictionary()
     {
-        m_logDictionary.PrepareDictionaryForSerialization();
         var logDictionaryJSON = JsonUtility.ToJson(m_logDictionary);
-        Debug.Log(m_logDictionary.Entries.Count);
-        foreach (var log in m_logDictionary.Entries)
-        {
-            Debug.Log("log: " + log.Key + log.Value.ToString());
-        }
         File.WriteAllText(LogDictionaryPath, logDictionaryJSON);
     }
     private void SaveNewLog(InputLog log)
@@ -152,9 +162,23 @@ public class InputRecorder : MonoBehaviour
 
         // make a new log file.
         var jsonLog = JsonUtility.ToJson(log);
-        File.WriteAllText(GetUniquePath(log), jsonLog);
+
+        File.WriteAllText(GetLogPath(log), jsonLog);
     }
-    private InputLog ReadInputLog(string path)
+    public string GetLogPath(InputLog log)
+    {
+        return LogPath + log.Name + ".json";
+    }
+    public string GetLogPath(string logName)
+    {
+        return LogPath + logName + ".json";
+    }
+
+    public string MakeName(int id)
+    {
+        return "InputLog_" + id.ToString();
+    }
+    public InputLog GetInputLog(string path)
     {
         var content = File.ReadAllText(path);
         InputLog log = JsonUtility.FromJson<InputLog>(content);
@@ -164,113 +188,73 @@ public class InputRecorder : MonoBehaviour
     #endregion
 
     #region Actions
-    private void InputDataReceived(InputData data)
+    private void InputDataReceived(InputFrame frameData)
     {
-
+        if (frameData.EmptyInputFrame) return;
         if (m_captureFrames)
         {
-            ConsoleLog("OnInputDataReceived: Adding InputData data: " + data.ToString());
-            m_activeLog.AddFrame(data);
+            ConsoleLog("OnInputDataReceived: Adding InputData data: " + frameData.ToString());
+            m_activeLog.AddFrame(frameData);
         }
     }
     #endregion
-    public string GetUniquePath(InputLog log)
-    {
-        var hash = new Hash128();
-        hash.Append(log.Name + log.Salt);
-        return LogPath + hash.ToString() + ".json";
-    }
+
 
     private void ConsoleLog(string text)
     {
         if (m_PrintLogs) Debug.Log(text);
     }
 
-
-
-
-
 }
 [Serializable]
 public class LogLookup
 {
-    [SerializeField] private List<string> m_keys;
-    [SerializeField] private List<LogID> m_values;
-    public Dictionary<string, LogID> Entries;
+
+    public int LogCounter = 0;
+    public List<string> Entries;
     public LogLookup()
     {
-        this.Entries = new Dictionary<string, LogID>();
+        this.Entries = new List<string>();
     }
     public void Add(InputLog entry)
     {
+        if (Entries.Contains(entry.Name)) return;
 
-        Debug.Log("Checking: " + entry.Name + ":" + this.Entries.ContainsKey(entry.Name));
-
-        if (this.Entries.ContainsKey(entry.Name))
+        if (string.IsNullOrWhiteSpace(entry.Name))
         {
-            return;
+            entry.Name = InputRecorder.Instance.MakeName(LogCounter++);
         }
-        var hashedName = InputRecorder.Instance.GetUniquePath(entry);
-        var data = new LogID(entry.Name, entry.Salt, hashedName);
-        this.Entries.Add(entry.Name, data);
+        Entries.Add(entry.Name);
     }
     public void Remove(string name)
     {
-        if (this.Entries.ContainsKey(name))
-        {
-            this.Entries.Remove(name);
-        }
+        if (Entries.Contains(name)) Entries.Remove(name);
+    }
+    public bool Contains(string logID)
+    {
+        return Entries.Contains(logID);
     }
 
-    public void PrepareDictionaryForSerialization()
-    {
-        m_keys = new List<string>();
-        m_values = new List<LogID>();
-        foreach (var pair in this.Entries)
-        {
-            m_keys.Add(pair.Key);
-            m_values.Add(pair.Value);
-        }
-    }
-    public void LoadDictionaryFromLists()
-    {
-        this.Entries = new Dictionary<string, LogID>();
-        int size = Mathf.Min(m_keys.Count, m_values.Count);
-        for (int i = 0; i < m_keys.Count; i++)
-        {
-            this.Entries.Add(m_keys[i], m_values[i]);
-        }
-    }
+
 }
 [Serializable]
 public class InputLog
 {
-    public string Name
+    public string Name;
+    public int FrameCount;
+    public List<InputFrame> InputFrames;
+    public InputLog()
     {
-        get { return this.id.Name; }
-        set { this.id.Name = value; }
+        this.InputFrames = new List<InputFrame>();
     }
-    public string Salt
-    {
-        get { return this.id.Salt; }
-        set { this.id.Name = value; }
-    }
-    LogID id;
-    public List<InputData> InputFrames;
-    public InputLog(string name, string salt)
-    {
-        this.InputFrames = new List<InputData>();
-        this.id = new LogID(name, salt, "");
-        this.Name = name;
-        this.Salt = salt;
-    }
-    public void AddFrame(InputData data)
+    public void AddFrame(InputFrame data)
     {
         this.InputFrames.Add(data);
     }
+
     public void PrintLog()
     {
-        foreach (InputData frame in InputFrames)
+        foreach (InputFrame frame in InputFrames)
         {
             Debug.Log(frame.ToString());
         }
@@ -279,15 +263,13 @@ public class InputLog
 [Serializable]
 public struct InputData
 {
-    public int Frame;
     public bool UpPressed;
     public bool DownPressed;
     public bool LeftPressed;
     public bool RightPressed;
     public bool SpacePressed;
-    public InputData(int frame, bool up, bool down, bool left, bool right, bool space)
+    public InputData(bool up, bool down, bool left, bool right, bool space)
     {
-        this.Frame = frame;
         this.UpPressed = up;
         this.DownPressed = down;
         this.LeftPressed = left;
@@ -298,8 +280,7 @@ public struct InputData
     public override string ToString()
     {
 
-        return "Frame: " + this.Frame.ToString() +
-                    "UpPressed: " + this.UpPressed.ToString() +
+        return "UpPressed: " + this.UpPressed.ToString() +
                      "DownPressed: " + this.DownPressed.ToString() +
                      "LeftPressed: " + this.LeftPressed.ToString() +
                      "RightPressed: " + this.RightPressed.ToString() +
@@ -309,15 +290,16 @@ public struct InputData
     }
 }
 [Serializable]
-public struct LogID
+public struct InputFrame
 {
-    public string Name;
-    public string Salt;
-    public string HashedName;
-    public LogID(string name, string salt, string hashedName)
+    public bool EmptyInputFrame;
+    public int Frame;
+    public InputData P1;
+    public InputFrame(bool empty, int frame, InputData p1)
     {
-        this.Name = name;
-        this.Salt = salt;
-        this.HashedName = hashedName;
+        this.EmptyInputFrame = empty;
+        this.Frame = frame;
+        this.P1 = p1;
     }
 }
+
