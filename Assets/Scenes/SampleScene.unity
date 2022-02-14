@@ -296,7 +296,7 @@ MonoBehaviour:
   m_PlayerSquarePrefab: {fileID: 2105752985893229230, guid: 37520cdb85922dd4bac0ac32643c294e, type: 3}
   m_ReplayRunnerPrefab: {fileID: 3265308755402462344, guid: 5437398142dd7dc4b88447f40a3984f6, type: 3}
   m_RunReplay: 1
-  m_ReplayLog: 5
+  m_ReplayLog: 6
 --- !u!1001 &3265308754335599203
 PrefabInstance:
   m_ObjectHideFlags: 0
