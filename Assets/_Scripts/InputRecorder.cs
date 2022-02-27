@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using System;
+using FixMath.NET;
 
 ///<summary> 
-/// INputRecorder is the singleton that handles input 
+/// InputRecorder is the singleton that handles input 
 ///</summary> 
 public class InputRecorder : MonoBehaviour
 {
@@ -30,6 +31,7 @@ public class InputRecorder : MonoBehaviour
         }
     }
 
+    private Fix64 f; 
 
     private LogLookup m_logDictionary;
     private InputLog m_activeLog;
