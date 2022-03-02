@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2105752985893229227}
   - component: {fileID: 2105752985893229228}
   - component: {fileID: 2105752985893229229}
+  - component: {fileID: -9049123044103005790}
   m_Layer: 0
   m_Name: Square
   m_TagString: Untagged
@@ -96,3 +97,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   movementSpeed: 0.2
+--- !u!114 &-9049123044103005790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2105752985893229230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8821ef596d4802840a6bcd0d8d7217ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rollback: 7

@@ -9,9 +9,6 @@ public class PlayerController : MonoBehaviour
     Transform squareTransform;
 
     public float movementSpeed = 0.02f;
-    //public int rollback = 7;
-
-    //Dictionary<string, Variable> state;
     
     // Start is called before the first frame update
     void Start()
@@ -21,16 +18,6 @@ public class PlayerController : MonoBehaviour
         squareSpriteRenderer.color = Color.green;
 
         squareTransform = GetComponent<Transform>();
-
-        /*
-        // initialize state dictionary
-        state = new Dictionary<string, Variable>();
-
-        state.Add("x", new Variable());
-        state.Add("y", new Variable());
-
-        state.Add("colour", new Variable());
-        */
     }
    
     public void SubscribeToInputRecorder(bool unSubsribe = false)
@@ -92,18 +79,9 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown("return"))
         {
             // This command will be for testing rolling back
-            print("return"); 
+            GameObject temp = GameObject.Find("gameManager");
+            StateManager other = (StateManager) temp.GetComponent(typeof(StateManager));
+            other.test();
         }
-
-        // Finally, after all changes have been made for the frame, update variables for state dictionary
-        // left off here, change "Variable" data type to something generic for multiple data types. Maybe try Dictionary<string, object> and cast?
-
-        // x and y coordinates
-        //state["x"].value = squareTransform.position.x;
-        //state["y"].value = squareTransform.position.y;
-
-        //colour
-        //state["colour"].value = squareSpriteRenderer.color;
     }
-
 }

@@ -7,10 +7,13 @@ public class StateManager : MonoBehaviour
     public int rollback = 7;
 
     // queue for FrameStates of past frames (for rollback)
-    public Queue<FrameState> stateQueue = new Queue<FrameState>();
+    public List<FrameState> stateQueue = new List<FrameState>();
 
     // tracker for current frame
     private int frameNum = 0;
+
+    // for use in getGameState() when fetching child game objects and adding to stateQueue (saving computation resources making here)
+    private Dictionary<string, Dictionary<string, Variable>> upperDict;
 
     /*
      * Game state variable
@@ -26,35 +29,36 @@ public class StateManager : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
+        Application.targetFrameRate = 60;
         // initialize state queue
         for (int i = 0; i < rollback; i++)
         {
             // empty input, frame 0, initial gamestate
-            stateQueue.Enqueue(new FrameState (0, getGameState()));
+            stateQueue.Add(new FrameState (0, getGameState()));
         }
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         // save current gamestate before recording any inputs
         Dictionary<string, Dictionary<string, Variable>> preGameState = getGameState();
 
         // frameStartAll
 
-        // do some input processing stuff stuff
+        // record input to send to client
 
-        // todo: test restting of state
-        
+        // reset state according to new inputs from client here
+
         // frameUpdateAll
 
         // frameEndAll
 
-        // store current framestate into queue
-        stateQueue.Enqueue(new FrameState(frameNum, getGameState()));
+        // store current framestate into queue 
+        stateQueue.Add(new FrameState(frameNum, getGameState()));
 
         //remove oldest state from queue
-        stateQueue.Dequeue();
+        stateQueue.RemoveAt(0);
 
         frameNum = (frameNum + 1) % 256; // increment current frameNum cycle
     }
@@ -62,29 +66,47 @@ public class StateManager : MonoBehaviour
     // Iterate through each child of this class and get their state dictionaries to form the game state dictionary
     public Dictionary<string, Dictionary<string, Variable>> getGameState()
     {
-        var upperDict = new Dictionary<string, Dictionary<string, Variable>>();
+        upperDict = new Dictionary<string, Dictionary<string, Variable>>();
 
-        for (int i = 0; i < this.gameObject.transform.childCount; i++)
+        for (int i = 0; i < transform.childCount; i++)
         {
             // Get child
-            Transform child = this.gameObject.transform.GetChild(i);
+            Transform child = transform.GetChild(i);
 
             // Get child state dictionary
-            Dictionary<string, Variable> lowerDict = child.gameObject.GetComponent<ChildStateManager>().getState();
+            Dictionary<string, Variable> lowerDict = child.gameObject.GetComponent<ChildStateManager>().getState(frameNum);
 
             // Add to game state dictionary
             upperDict.Add(child.name, lowerDict);
         }
         return upperDict;
     }
-}
 
+    public void resetStateAll(Dictionary<string, Dictionary<string, Variable>> newGameState)
+    {
+        for (int i = 0; i < this.gameObject.transform.childCount; i++)
+        {
+            // Get child
+            Transform child = this.gameObject.transform.GetChild(i);
+
+            // reset state for child, potentially deleting child
+            // TODO: test deleting gameobjects later
+            child.gameObject.GetComponent<ChildStateManager>().resetState(newGameState);
+        }
+    }
+
+    // This command is for testing rollback
+    public void test()
+    {
+        resetStateAll(stateQueue[0].gameState);
+    }
+}
 
 public class FrameState
 {
     // add variable for input
-    private int frame;
-    private Dictionary<string, Dictionary<string, Variable>> gameState;
+    public int frame;
+    public Dictionary<string, Dictionary<string, Variable>> gameState;
 
     public FrameState(int newFrame, Dictionary<string, Dictionary<string, Variable>> newGameState)
     {
@@ -93,6 +115,7 @@ public class FrameState
     }
 }
 
+// maybe its this
 public class Variable {
     public object value { get; set; }
 }

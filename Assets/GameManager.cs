@@ -65,7 +65,9 @@ public class GameManager : MonoBehaviour
     }
     public GameObject GetSquare()
     {
-        return Instantiate(m_PlayerSquarePrefab);
+        GameObject square = Instantiate(m_PlayerSquarePrefab);
+        square.transform.parent = this.transform;
+        return square;
     }
     public GameObject GetReplayRunner(){
         return Instantiate(m_ReplayRunnerPrefab);
