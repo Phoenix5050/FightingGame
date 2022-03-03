@@ -12,6 +12,7 @@ public class InputRecorder : MonoBehaviour
     public Action<InputFrame> OnInputRecorded;
     private int m_frameCounter = 0;
     private bool m_captureFrames = false;
+    private InputData p1InputData;
     [SerializeField] private bool m_PrintLogs;
     public static InputRecorder Instance;
 
@@ -76,12 +77,12 @@ public class InputRecorder : MonoBehaviour
         bool p1Left = Input.GetButton("Left");
         bool p1Space = Input.GetButton("Space");
 
-        InputData p1 = new InputData(
+        p1InputData = new InputData(
             p1Up, p1Down, p1Left, p1Right, p1Space
         );
 
         InputFrame frame = new InputFrame(empty: !(p1Up || p1Down || p1Left || p1Right || p1Space),
-                                        m_frameCounter, p1);
+                                        m_frameCounter, p1InputData);
 
         OnInputRecorded?.Invoke(frame);
 
@@ -92,6 +93,10 @@ public class InputRecorder : MonoBehaviour
     #endregion
 
     #region Public Methods
+    public InputData getInputData()
+    {
+        return p1InputData;
+    }
     public void BeginCapture()
     {
         m_captureFrames = true;
@@ -289,8 +294,12 @@ public struct InputData
                      "LeftPressed: " + this.LeftPressed.ToString() +
                      "RightPressed: " + this.RightPressed.ToString() +
                      "SpacePressed: " + this.SpacePressed.ToString();
+    }
 
-
+    public InputData duplicate()
+    {
+        InputData duplicate = new InputData(this.DownPressed, this.DownPressed, this.LeftPressed, this.RightPressed, this.SpacePressed);
+        return duplicate;
     }
 }
 [Serializable]
